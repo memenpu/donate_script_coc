@@ -49,13 +49,6 @@ class Donated(DonateState):
 class COCDevice(Device):
 
     def donate_troop(self, troop: c.Troop, take_new_screenshot=True) -> DonateState:
-        """
-        will donate a type troops until the cc fill up or no enough this type of troops
-        :param troop:
-        :param take_new_screenshot:
-        :return:
-        :rtype: number of donation
-        """
         donate_state = DonateState(troop)
         while True:
             if not take_new_screenshot:
@@ -71,12 +64,6 @@ class COCDevice(Device):
                 return donate_state
 
     def find_donate_troop_and_tap_on_it(self, troop: c.Troop, take_new_screenshot) -> DonateState:
-        """
-        will try to donate a type of troop
-        :param troop:
-        :param take_new_screenshot:
-        :return:
-        """
         time.sleep(.25)
         image = self.screencap()
         image = Image.open(io.BytesIO(image))
@@ -112,10 +99,6 @@ class COCDevice(Device):
         return []
 
     def donate_finished(self):
-        """
-        see if the donate window closed automatically or not
-        :return:
-        """
         image = self.screencap()
         if not find_similar_images(Image.open(io.BytesIO(image)), c.CLOSE_BUTTON):
             return True
@@ -130,7 +113,6 @@ class COCDevice(Device):
         troops = {a: b for a, b in donated_troops.items() if a.troop_type is c.TroopType.NORMAL and b}
         if len(troops):
             self.find_control(c.TRAIN_TROOPS)
-            # no need swipe
             troops1 = {a: b for a, b in troops.items() if not a.swipe}
             if len(troops1):
                 print("train ", "; ".join([f"{x.name}: {y}" for x, y in troops1.items()]))
@@ -143,7 +125,6 @@ class COCDevice(Device):
             troops1 = {a: b for a, b in troops.items() if a.swipe}
             if len(troops1):
                 print("train ", "; ".join([f"{x.name}: {y}" for x, y in troops1.items()]))
-                # self.find_control(c.TRAIN_TROOPS_PATH)~~
                 self.input_swipe(925, 807, 50, 807, 500)
                 time.sleep(0.25)
                 for x, donated_count in troops1.items():
@@ -204,6 +185,7 @@ class COCDevice(Device):
     def tap_to_cancel(self):
         time.sleep(.1)
         self.tap_on_rectangle(Rectangle(1800, 0, 100, 100))
+
 
 def get_device(index) -> COCDevice:
     client = AdbClient(host="127.0.0.1", port=5037)

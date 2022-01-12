@@ -1,5 +1,4 @@
 from enum import Enum
-
 import cv2
 from PIL import Image
 
@@ -75,9 +74,6 @@ battle_blimp = Troop("battle_blimp", TroopType.SIEGE_MACHINE)
 log_launcher = Troop("log_launcher", TroopType.SIEGE_MACHINE)
 flame_flinger = Troop("flame_flinger", TroopType.SIEGE_MACHINE, swipe=True)
 unknown = Troop("unknown")
-
-screenshot_path = r"screenshot.png"
-temp_img = f"temp.png"
 
 # target_images
 OPEN_CHAT_IMG = cv2.imread(r"buttons/open_chat.png", 0)

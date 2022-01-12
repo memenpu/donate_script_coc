@@ -3,11 +3,15 @@ import numpy as np
 from typing import List
 from retangle import Rectangle
 import datetime
-from  PIL import Image
+from PIL import Image, PngImagePlugin
 
 
 def find_similar_images(img, template, filter_function=None, exist_image=None) -> List[Rectangle]:
-    gray_img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
+    gray_img = None
+    if type(img) is PngImagePlugin.PngImageFile or type(img) is Image.Image:
+        gray_img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
+    else:
+        gray_img = img
     if exist_image is not None:
         template1 = exist_image
         result1 = cv2.matchTemplate(gray_img, template1, cv2.TM_CCOEFF_NORMED)

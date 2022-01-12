@@ -1,16 +1,15 @@
+import collections
 import io
 import time
-import collections
+from typing import List
 
-import cv2
 from PIL import Image
+from ppadb.client import Client as AdbClient
 from ppadb.device import Device
+
 import constants as c
 from find_image_similarity import find_similar_images
-from ppadb.client import Client as AdbClient
 from retangle import Rectangle
-from typing import List
-import numpy as np
 
 
 class DonateState:
@@ -67,7 +66,7 @@ class COCDevice(Device):
             if type(state) is Donated:
                 donate_state.number_of_donate += 1
             else:
-                print(state)
+                # print(state)
                 donate_state.number_of_donate += state.number_of_donate
                 return donate_state
 
@@ -78,10 +77,8 @@ class COCDevice(Device):
         :param take_new_screenshot:
         :return:
         """
-        time.sleep(.5)
+        time.sleep(.25)
         image = self.screencap()
-            # with open(c.screenshot_path, 'wb') as f:
-            #     f.write(image)
         image = Image.open(io.BytesIO(image))
         if found := find_similar_images(image, troop.donate_image,
                                         filter_function=lambda x, y: x > 200, exist_image=c.CLOSE_BUTTON):
@@ -96,7 +93,7 @@ class COCDevice(Device):
         return TroopDonateFinished(troop)
 
     def find_control(self, control, filter_function=None, tap_on_it=True) -> List[Rectangle]:
-        time.sleep(.5)
+        time.sleep(.25)
         image = self.screencap()
         # with open(c.screenshot_path, 'wb') as f:
         #     f.write(image)
@@ -120,65 +117,76 @@ class COCDevice(Device):
         :return:
         """
         image = self.screencap()
-        # with open(c.screenshot_path, 'wb') as f:
-        #     f.write(image)
         if not find_similar_images(Image.open(io.BytesIO(image)), c.CLOSE_BUTTON):
             return True
         else:
             return False
 
     def train_donated_troops(self, donated_troops: collections.Counter):
-        # will_donate_troop_spell = False
-        will_donate_troop_spell = True
-
+        if len({a: b for a, b in donated_troops.items() if b}) == 0:
+            return
         self.find_control(c.TRAIN_BUTTON)
         # train troops
-        troops = {a: b for a, b in donated_troops.items() if a.troop_type is c.TroopType.NORMAL and b > 0}
-        self.find_control(c.TRAIN_TROOPS)
-        # no need swipe
-        troops1 = {a: b for a, b in troops.items() if not a.swipe}
-        if will_donate_troop_spell:
-            print("train ", "; ".join([f"{x.name}: {y}" for x, y in troops1.items()]))
-            for x, donated_count in troops1.items():
-                if found := self.find_control(x.queue_image, tap_on_it=False):
-                    for i in range(donated_count):
-                        self.tap_on_rectangle_x_y2(found[0])
-                        time.sleep(.25)
+        troops = {a: b for a, b in donated_troops.items() if a.troop_type is c.TroopType.NORMAL and b}
+        if len(troops):
+            self.find_control(c.TRAIN_TROOPS)
+            # no need swipe
+            troops1 = {a: b for a, b in troops.items() if not a.swipe}
+            if len(troops1):
+                print("train ", "; ".join([f"{x.name}: {y}" for x, y in troops1.items()]))
+                for x, donated_count in troops1.items():
+                    if found := self.find_control(x.queue_image, tap_on_it=False):
+                        for i in range(donated_count):
+                            self.tap_on_rectangle_x_y2(found[0])
+                            time.sleep(.15)
 
-        troops1 = {a: b for a, b in troops.items() if a.swipe}
-        if will_donate_troop_spell:
-            print("train ", "; ".join([f"{x.name}: {y}" for x, y in troops1.items()]))
-            # self.find_control(c.TRAIN_TROOPS_PATH)~~
-            self.input_swipe(925, 807, 50, 807, 500)
-            time.sleep(0.5)
-            for x, donated_count in troops1.items():
-                if found := self.find_control(x.queue_image, tap_on_it=False):
-                    for i in range(donated_count):
-                        self.tap_on_rectangle_x_y2(found[0])
-                        time.sleep(.25)
+            troops1 = {a: b for a, b in troops.items() if a.swipe}
+            if len(troops1):
+                print("train ", "; ".join([f"{x.name}: {y}" for x, y in troops1.items()]))
+                # self.find_control(c.TRAIN_TROOPS_PATH)~~
+                self.input_swipe(925, 807, 50, 807, 500)
+                time.sleep(0.25)
+                for x, donated_count in troops1.items():
+                    if found := self.find_control(x.queue_image, tap_on_it=False):
+                        for i in range(donated_count):
+                            self.tap_on_rectangle_x_y2(found[0])
+                            time.sleep(.15)
         # train spells
         # if len(troops):
-        troops = {a: b for a, b in donated_troops.items() if a.troop_type is c.TroopType.SPELL and b > 0}
-        self.find_control(c.BREW_SPELLS)
-        print("train ",len(troops), "; ".join([f"{x.name}: {y}" for x, y in troops.items()]))
-        if will_donate_troop_spell:
+        troops = {a: b for a, b in donated_troops.items() if a.troop_type is c.TroopType.SPELL and b}
+        if len(troops):
+            self.find_control(c.BREW_SPELLS)
+            print("train ", len(troops), "; ".join([f"{x.name}: {y}" for x, y in troops.items()]))
             for x, donated_count in troops.items():
                 if found := self.find_control(x.queue_image, tap_on_it=False):
                     for i in range(donated_count):
                         self.tap_on_rectangle_x_y2(found[0])
-                        time.sleep(.25)
+                        time.sleep(.15)
 
         # train siege machines
-        troops = {a: b for a, b in donated_troops.items() if
-                  a.troop_type is c.TroopType.SIEGE_MACHINE and b > 0}
-        self.find_control(c.BUILD_SIEGE_MACHINES)
-        print("train ", "; ".join([f"{x.name}: {y}" for x, y in troops.items()]))
-        for x, donated_count in troops.items():
-            if found := self.find_control(x.queue_image, tap_on_it=False):
-                for i in range(donated_count):
-                    self.tap_on_rectangle_x_y2(found[0])
-                    time.sleep(.25)
-        self.find_control(c.TRAIN_BUTTON)
+        machines = {a: b for a, b in donated_troops.items() if a.troop_type is c.TroopType.SIEGE_MACHINE and b}
+        if len(machines):
+            troops = {a: b for a, b in machines.items() if not a.swipe}
+            self.find_control(c.BUILD_SIEGE_MACHINES)
+            if len(troops):
+                print("train ", "; ".join([f"{x.name}: {y}" for x, y in troops.items()]))
+                for x, donated_count in troops.items():
+                    if found := self.find_control(x.queue_image, tap_on_it=False):
+                        for i in range(donated_count):
+                            self.tap_on_rectangle_x_y2(found[0])
+                            time.sleep(.15)
+            troops = {a: b for a, b in machines.items() if a.swipe}
+            if len(troops):
+                self.input_swipe(925, 807, 50, 807, 500)
+                time.sleep(0.25)
+                print("train ", "; ".join([f"{x.name}: {y}" for x, y in troops.items()]))
+                for x, donated_count in troops.items():
+                    if found := self.find_control(x.queue_image, tap_on_it=False):
+                        for i in range(donated_count):
+                            self.tap_on_rectangle_x_y2(found[0])
+                            time.sleep(.15)
+
+        self.tap_to_cancel()
 
     def tap_on_rectangle(self, rectangle_area: Rectangle):
         self.input_tap(*rectangle_area.x1_y1_center)
@@ -186,27 +194,19 @@ class COCDevice(Device):
     def tap_on_rectangle_x_y2(self, rectangle_area: Rectangle):
         self.input_tap(rectangle_area.x, rectangle_area.y2)
 
-    def control_exist_at(self, source_image_path, rectangle_area):
-        time.sleep(.5)
+    def control_exist_at(self, source_image, rectangle_area):
+        time.sleep(.25)
         image = self.screencap()
-        # with open(c.screenshot_path, 'wb') as f:
-        #     f.write(image)
-
-        if find_similar_images(Image.open(io.BytesIO(image)), cv2.cvtColor(np.array(image.crop((rectangle_area.shrink_x1_y1_x2_y2(-5)))), 0)):
+        image = Image.open(io.BytesIO(image))
+        if find_similar_images(image.crop(rectangle_area.shrink_x1_y1_x2_y2()), source_image):
             return True
 
+    def tap_to_cancel(self):
+        time.sleep(.1)
+        self.tap_on_rectangle(Rectangle(1800, 0, 100, 100))
 
 def get_device(index) -> COCDevice:
     client = AdbClient(host="127.0.0.1", port=5037)
     print(client.devices())
     print(client.version())
     return client.devices()[0]
-
-
-# cd C:\Users\JiangKan\ng-on-meeting
-# npm run packagr
-# cd ./dist
-# npm pack
-# cd C:\Users\JiangKan\Downloads\OTBMeetingsManagement.UI
-# npm install C:\Users\JiangKan\ng-on-meeting\dist\ng-on-meeting-0.0.83.tgz --force
-
